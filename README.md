@@ -43,87 +43,87 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 |COMMENT|`#.*$`|komentarz|
 
 ### Gramatyka:
-  program: START statement+ END
-  statement: 
-	  	| instruction
-		  | block_statement
-		
-  instruction:
-  		| assignment
-  		| expression
-  		| BREAK
-  		| CONTINUE
-  		| return
-  
-  assignment: variable ASGN rhs
-  
-  variable: 
-      | NAME
-      | call
-      | container
-      
-  rhs:
-      | literal
-      | NAME
-      | call
-      | container
-      
-  block_statement:
-  		| while_statement
-  		| for_statement
-  		| if_statement
-  
-  block: NEWLINE INDENT statement+
-  
-  while_statement: while_header block
-  
-  for_statement: for_header block
-  
-  while_header: WHILE condition COLON
-  
-  for_header: FOR target IN expression COLON
-  
-  if_statement: IF condition COLON block [ELSE block]
-  
-  container:
-  		| list
-  		| tuple
-  		| dictionary
-  
-  condition:
-  		| compare
-  		| call
-  		| TRUE
-  		| FALSE
-  
-  expression: NAME LPAREN callable* RPAREN
-  
-  callable:
-  		| container
-  		| literal
-  		| expression
-  		| NAME
-  
-  compare: item comp_op item
-  
-  comp_op: EQ | GE | LE
-  
-  list: LPAREN item? (COMMA item)* RPAREN
-  
-  tuple: LNO (item COMMA)* PNO
-  
-  dictionary: LK dict_item? (COMMA dict_item)*  PK
-  
-  dict_item: item COLON item
-  
-  item:
-  	| literal
-  	| container
-  	| expression
-  
-  literal:
-  	| NUMBER
-  	| STRING
-  	| NONE
-  	| TRUE
-  	| FALSE
+	  program: START statement+ END
+	  statement: 
+		  	| instruction
+			  | block_statement
+			
+	  instruction:
+	  		| assignment
+	  		| expression
+	  		| BREAK
+	  		| CONTINUE
+	  		| return
+	  
+	  assignment: variable ASGN rhs
+	  
+	  variable: 
+	      | NAME
+	      | call
+	      | container
+	      
+	  rhs:
+	      | literal
+	      | NAME
+	      | call
+	      | container
+	      
+	  block_statement:
+	  		| while_statement
+	  		| for_statement
+	  		| if_statement
+	  
+	  block: NEWLINE INDENT statement+
+	  
+	  while_statement: while_header block
+	  
+	  for_statement: for_header block
+	  
+	  while_header: WHILE condition COLON
+	  
+	  for_header: FOR target IN expression COLON
+	  
+	  if_statement: IF condition COLON block [ELSE block]
+	  
+	  container:
+	  		| list
+	  		| tuple
+	  		| dictionary
+	  
+	  condition:
+	  		| compare
+	  		| call
+	  		| TRUE
+	  		| FALSE
+	  
+	  expression: NAME LPAREN callable* RPAREN
+	  
+	  callable:
+	  		| container
+	  		| literal
+	  		| expression
+	  		| NAME
+	  
+	  compare: item comp_op item
+	  
+	  comp_op: EQ | GE | LE
+	  
+	  list: LPAREN item? (COMMA item)* RPAREN
+	  
+	  tuple: LNO (item COMMA)* PNO
+	  
+	  dictionary: LK dict_item? (COMMA dict_item)*  PK
+	  
+	  dict_item: item COLON item
+	  
+	  item:
+	  	| literal
+	  	| container
+	  	| expression
+	  
+	  literal:
+	  	| NUMBER
+	  	| STRING
+	  	| NONE
+	  	| TRUE
+	  	| FALSE
