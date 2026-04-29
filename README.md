@@ -13,41 +13,87 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 - **Generator parsera:** LARK
 
 ### Spis tokenów:
+## Wzorce znaczeniowe
 |Token|Wzorzec|Opis|
 |-----|-------|----|
-|IDENT|`_`|identacja bloku kodu|
-|NAME|`[_a-zA-Z]+`|nazwa obiektu|
-|NUMBER|`[0-9]+(.[0-9]+)?`|liczba całkowita/zmiennoprzecinkowa
+|NAME|`[_a-zA-Z][_a-zA-Z0-9]*`|nazwa obiektu|
+|NUMBER|`[0-9]+(.[0-9]+)?`|liczba rzecywista|
 |STRING|`^".*"$`|napis|
+## Słowa kluczowe 
+|PASS|`pass`|wypełnienie|
+|IF|`if`|instrukcja "jeżeli"|
+|ELIF|`elif`|instrukcja "jeśli nie, to jeżeli"|
+|ELSE|`else`|instrukcja "w przeciwnym wypadku"|
+|MATCH|`match`|instrukcja wyboru|
+|CASE|`case`|przypadek dla dopasowanego wzorca|
+|FOR|`for`|pętla for|
+|WHILE|`while`|pętla while|
+|IN|`in`|relacja inkluzji|
+|IS|`is`|identyczność|
+|RAISE|`raise`|wniesienie wyjątku|
+|ASSERT|`assert`|
+|DEF|`def`|definicja funkcji/klasy|
+|CLASS|`class`|okreslanie definiowanego jako klasy|
+|TRY|`try`|wyznaczenie sekcji krytycznej|
+|EXCEPT|`except`|w wypadku błędu powiązanej sekcji krytycznej|
+|FINALLY|`finally`|po wykonaniu sekcji krytycznej|
+|WITH|`with`|określenie kontekstu nazwy|
+|YIELD|`yield`|zwracanie generujące|
+|GLOBAL|`global`|określenie zmiennej globalnej|
+|NONLOCAL|`nonlocal`|deklaracja zmiennej nielokalnej|
+## Stałe
+|NONE|`None`|brak wartości|
+|TRUE|`True`|prawda|
+|FALSE|`False`|fałsz|
+## Operatory
+|ASGN|`=`|przypisanie|
 |PLUS|`+`|dodawanie|
 |MINUS|`-`|odejmowanie|
-|ASGN|`=`|przypisanie|
+|TIMES|`*`|mnożenie|
+|DIV|`/`|dzielenie|
+|POWER|`**`|potęgowanie|
+|DIV_INT|`//`|dzielenie całkowite|
+|MODULO|`%`|modulo|
+|AND|`&`|koniunkcja|
+|OR|`|`|alternatywa|
+|XOR|`^`|alternatywa wykluczająca|
+|LSHIFT|`<<`|przesunięcie bitowe w lewo|
+|RSHIFT|`>>`|przesunięcie bitowe w prawo|
+# Porównania
 |EQ|`==`|równosć|
 |GE|`>=`|większe bądź równe od|
 |LE|`<=`|mniejsze bądź równe od|
-|NONE|`None`|słowo kluczowe None|
-|TRUE|`True`|słowo kluczowe True|
-|FALSE|`False`|słowo kluczowe False|
+# Nawiasy
 |LPAREN|`(`|lewy nawias okrągły|
 |RPAREN|`)`|prawy nawias okrągły|
 |LBRACKET|`[`|lewy nawias kwadratowy|
 |RBRACKET|`]`|prawy nawias kwadratowy|
 |LBRACE|`{`|lewa klamra|
 |RBRACE|`}`|prawa klamra|
+# Interpunkcja
 |COMMA|`,`|przecinek|
 |COLON|`:`|dwukropek|
 |SEMICOLON|`;`|średnik|
+# Słowa kluczowe
+|AND_KW|`and`|koniunkcja|
+|OR_KW|`or`|alternatywa|
+|NOT_KW|`not`|negacja|
+## Znaki i tokeny strukturalne
 |NEWLINE|`\n`|nowa linia|
-|WHITESPACE|`[ \t\r\n]+`|białe znaki|
+|WHITESPACE|`[ ]+`|białe znaki|
 |EOF|`EOF`|koniec pliku|
-|COMMENT|`#.*$`|komentarz|
+|INDENT|kontekstowo|wcięcie|
+|DEDENT|kontekstowo|powrót do zagnieżdzenia przed wcięciem|
+## Komentarz
+|COMMENT|`#.*$`|komentarz jedno-linijkowy|
 
 ### Gramatyka:
-	program: START statement+ END
+	program: statement+ EOF
 	  
 	statement: instruction
 	| block_statement
 	| ignore
+	| PASS
 	
 	instruction: expressions
 	  		| assignment
@@ -72,16 +118,46 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 		| error_handling
 		| variable_scope
 		| context
+
+	assignment: simple_asgn
+			| extended_asgn
+
+	simple_asgn: unit [COMMA unit]? ASGN expression
+
+	extended_asgn: unit operator ASGN expression
+
+	operator: PLUS
+			| MINUS
+			| TIMES
+			| DIV
+			| MODULO
+			| DIV_INT
+			| POWER
+			| AND
+			| OR
+			| XOR
+			| LSHIFT
+			| RSHIFT
 	
 	if_conditional: IF if_condition COLON block [elif_conditional]* [else_conditional]
 	   
 	elif_conditional: ELIF if_condition COLON block
 	
 	else_conditional: ELSE COLON block
+
+	if_condition: expression compare expression
+	compare: OR_KW
+			| AND_KW
+			| OR
+			| AND
+			| EQ
+			| LE
+			| GE
+			| IN
 	
 	match_conditional: MATCH name_expr COLON NEWLINE INDENT match_case
 	
-	match_case: CASE 
+	match_case: CASE (NAME|constant) COLON block [match_case]
 	
 	for_loop: FOR for_iter COLON block
 	
@@ -102,7 +178,7 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 	
 	context: WITH .*$
 	 
-	block: NEWLINE INDENT statement+
+	block: NEWLINE INDENT statement+ DEDENT
 	
 	expression: LPAREN expression RPAREN
 			| expression OR_KW expression
@@ -126,7 +202,7 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 		| unit LPAREN args RPAREN 
 		| unit LBRACKET indices RBRACKET
 		| NAME
-		| literal
+		| constant
 		| collection
 	
 	collection: list | tuple | dict
@@ -139,13 +215,23 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 	literal: integer
 		| float
 		| string
+
+	integer: pos_int | neg_int
+		
+	float: pos_fl | neg_fl
 	
-	list: LPAREN expression? (COMMA expression)* RPAREN
+	pos_int: NUMBER
+	neg_int: MINUS NUMBER
+	
+	pos_fl: NUMBER
+	neg_fl: MINUS NUMBER
+	
+	list: LBRACKET expression? (COMMA expression)* RBRACKET
 	  
 	tuple: LPAREN expression COMMA RPAREN
 		| LPAREN expression (COMMA expression)+ RPAREN
 	  
-	dictionary: LK dict_item? (COMMA dict_item)*  PK
+	dictionary: LBRACE dict_item? (COMMA dict_item)*  RBRACe
 	  
 	dict_item: expression COLON expression
 
@@ -211,7 +297,7 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 	
 	COMMENT: #.*$
 	
-	NAME: []
+	NAME: [_a-zA-Z][_a-zA-Z0-9]*
 	
 	INT: '0'|[1-9][0-9]*
 	FLOAT: ['0'|[1-9][0-9]*](.[0-9]*)?
@@ -220,5 +306,6 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 	WHITESPACE: [ \t\r]+
 	NEWLINE: \n
 	IDENT: _
+	DEDENT:
 	EOF: EOF
 
