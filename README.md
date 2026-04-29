@@ -20,6 +20,8 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 |NUMBER|`[0-9]+(.[0-9]+)?`|liczba rzecywista|
 |STRING|`^".*"$`|napis|
 ## Słowa kluczowe 
+|Token|Wzorzec|Opis|
+|-----|-------|----|
 |PASS|`pass`|wypełnienie|
 |IF|`if`|instrukcja "jeżeli"|
 |ELIF|`elif`|instrukcja "jeśli nie, to jeżeli"|
@@ -42,10 +44,14 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 |GLOBAL|`global`|określenie zmiennej globalnej|
 |NONLOCAL|`nonlocal`|deklaracja zmiennej nielokalnej|
 ## Stałe
+|Token|Wzorzec|Opis|
+|-----|-------|----|
 |NONE|`None`|brak wartości|
 |TRUE|`True`|prawda|
 |FALSE|`False`|fałsz|
 ## Operatory
+|Token|Wzorzec|Opis|
+|-----|-------|----|
 |ASGN|`=`|przypisanie|
 |PLUS|`+`|dodawanie|
 |MINUS|`-`|odejmowanie|
@@ -60,10 +66,14 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 |LSHIFT|`<<`|przesunięcie bitowe w lewo|
 |RSHIFT|`>>`|przesunięcie bitowe w prawo|
 # Porównania
+|Token|Wzorzec|Opis|
+|-----|-------|----|
 |EQ|`==`|równosć|
 |GE|`>=`|większe bądź równe od|
 |LE|`<=`|mniejsze bądź równe od|
 # Nawiasy
+|Token|Wzorzec|Opis|
+|-----|-------|----|
 |LPAREN|`(`|lewy nawias okrągły|
 |RPAREN|`)`|prawy nawias okrągły|
 |LBRACKET|`[`|lewy nawias kwadratowy|
@@ -71,20 +81,28 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 |LBRACE|`{`|lewa klamra|
 |RBRACE|`}`|prawa klamra|
 # Interpunkcja
+|Token|Wzorzec|Opis|
+|-----|-------|----|
 |COMMA|`,`|przecinek|
 |COLON|`:`|dwukropek|
 |SEMICOLON|`;`|średnik|
 # Słowa kluczowe
+|Token|Wzorzec|Opis|
+|-----|-------|----|
 |AND_KW|`and`|koniunkcja|
 |OR_KW|`or`|alternatywa|
 |NOT_KW|`not`|negacja|
 ## Znaki i tokeny strukturalne
+|Token|Wzorzec|Opis|
+|-----|-------|----|
 |NEWLINE|`\n`|nowa linia|
 |WHITESPACE|`[ ]+`|białe znaki|
 |EOF|`EOF`|koniec pliku|
 |INDENT|kontekstowo|wcięcie|
 |DEDENT|kontekstowo|powrót do zagnieżdzenia przed wcięciem|
 ## Komentarz
+|Token|Wzorzec|Opis|
+|-----|-------|----|
 |COMMENT|`#.*$`|komentarz jedno-linijkowy|
 
 ### Gramatyka:
