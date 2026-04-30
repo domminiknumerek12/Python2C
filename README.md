@@ -106,6 +106,8 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 |COMMENT|`#.*$`|komentarz jedno-linijkowy|
 
 ### Gramatyka:
+	%declare INDENT DEDENT
+	
 	program: statement+ EOF
 	  
 	statement: instruction
@@ -181,9 +183,9 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 	
 	while_loop: WHILE while_condition COLON block
 	
-	function: DEF NAME LPAREN [ COLON block
+	function: DEF NAME LPAREN (NAME (COLON NAME)*)? RPAREN COLON block
 	
-	class: DEF CLASS NAME (LPAREN RPAREN)? COLON block 
+	class:  CLASS NAME (LPAREN NAME RPAREN)? COLON block 
 	
 	import: IMPORT .*$
 	
@@ -222,6 +224,13 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 		| NAME
 		| constant
 		| collection
+
+	indices: expression [COLON expression]
+
+	args: [arg (COMMA arg)*]
+
+	arg: expression
+		| NAME ASGN expression
 	
 	collection: list | tuple | dict
 	
@@ -323,7 +332,5 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 	
 	WHITESPACE: [ \t\r]+
 	NEWLINE: \n
-	IDENT: _
-	DEDENT:
 	EOF: EOF
 
