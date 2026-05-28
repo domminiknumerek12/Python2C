@@ -112,57 +112,59 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 	simple_stmt: small_stmt _NEWLINE
 	?small_stmt: assign | aug_assign | return_stmt | expr_stmt | pass_stmt | break_stmt | continue_stmt
 
-assign: NAME "=" expr
-aug_assign: NAME AUG_OP expr
-return_stmt: "return" expr?
-expr_stmt: expr
-pass_stmt: "pass"
-break_stmt: "break"
-continue_stmt: "continue"
-
-if_stmt: "if" expr ":" suite ("elif" expr ":" suite)* ("else" ":" suite)?
-while_stmt: "while" expr ":" suite
-for_stmt: "for" NAME "in" "range" "(" range_args ")" ":" suite
-func_def: "def" NAME "(" [params] ")" ["->" NAME] ":" suite
-
-range_args: expr -> range1 | expr "," expr -> range2 | expr "," expr "," expr -> range3
-params: param ("," param)*
-param: NAME [":" NAME]
-suite: _NEWLINE _INDENT stmt+ _DEDENT
-
-?expr: or_expr
-?or_expr: and_expr ("or" and_expr)+ -> or_op | and_expr
-?and_expr: not_expr ("and" not_expr)+ -> and_op | not_expr
-?not_expr: "not" not_expr -> not_op | cmp
-?cmp: add (COMP_OP add)+ -> compare | add
-?add: mul (ADD_OP mul)+ -> binop | mul
-?mul: pow (MUL_OP pow)+ -> binop | pow
-?pow: atom ("**" pow) -> power_op | atom
-?atom: NUMBER -> number
-     | STRING -> string
-     | "True" -> true_lit
-     | "False" -> false_lit
-     | "None" -> none_lit
-     | NAME "(" [args] ")" -> call
-     | NAME "[" expr "]" -> subscript
-     | NAME -> name
-     | ADD_OP atom -> unary_op
-     | "(" expr ")"
-     | "[" [expr ("," expr)*] "]" -> list_lit
-
-args: expr ("," expr)*
-
-AUG_OP: "+=" | "-=" | "*=" | "/=" | "%="
-COMP_OP: "==" | "!=" | "<=" | ">=" | "<" | ">"
-ADD_OP: "+" | "-"
-MUL_OP: "*" | "//" | "/" | "%"
-
-NUMBER: /\d+(\.\d+)?([eE][+-]?\d+)?/
-STRING: /\"(?:[^\"\\]|\\.)*\"|'(?:[^'\\]|\\.)*'/
-NAME: /[a-zA-Z_]\w*/
-
-%declare _INDENT _DEDENT
-%ignore /[ \t]+/
-%ignore /\\\n/
-%ignore /#[^\n]*/
-_NEWLINE: /(\r?\n[\t ]*)+/
+	assign: NAME "=" expr
+	aug_assign: NAME AUG_OP expr
+	return_stmt: "return" expr?
+	expr_stmt: expr
+	pass_stmt: "pass"
+	break_stmt: "break"
+	continue_stmt: "continue"
+	
+	if_stmt: "if" expr ":" suite ("elif" expr ":" suite)* ("else" ":" suite)?
+	while_stmt: "while" expr ":" suite
+	for_stmt: "for" NAME "in" "range" "(" range_args ")" ":" suite
+	func_def: "def" NAME "(" [params] ")" ["->" NAME] ":" suite
+	
+	range_args: expr -> range1 
+		| expr "," expr -> range2 
+		| expr "," expr "," expr -> range3
+	params: param ("," param)*
+	param: NAME [":" NAME]
+	suite: _NEWLINE _INDENT stmt+ _DEDENT
+	
+	?expr: or_expr
+	?or_expr: and_expr ("or" and_expr)+ -> or_op | and_expr
+	?and_expr: not_expr ("and" not_expr)+ -> and_op | not_expr
+	?not_expr: "not" not_expr -> not_op | cmp
+	?cmp: add (COMP_OP add)+ -> compare | add
+	?add: mul (ADD_OP mul)+ -> binop | mul
+	?mul: pow (MUL_OP pow)+ -> binop | pow
+	?pow: atom ("**" pow) -> power_op | atom
+	?atom: NUMBER -> number
+	     | STRING -> string
+	     | "True" -> true_lit
+	     | "False" -> false_lit
+	     | "None" -> none_lit
+	     | NAME "(" [args] ")" -> call
+	     | NAME "[" expr "]" -> subscript
+	     | NAME -> name
+	     | ADD_OP atom -> unary_op
+	     | "(" expr ")"
+	     | "[" [expr ("," expr)*] "]" -> list_lit
+	
+	args: expr ("," expr)*
+	
+	AUG_OP: "+=" | "-=" | "*=" | "/=" | "%="
+	COMP_OP: "==" | "!=" | "<=" | ">=" | "<" | ">"
+	ADD_OP: "+" | "-"
+	MUL_OP: "*" | "//" | "/" | "%"
+	
+	NUMBER: /\d+(\.\d+)?([eE][+-]?\d+)?/
+	STRING: /\"(?:[^\"\\]|\\.)*\"|'(?:[^'\\]|\\.)*'/
+	NAME: /[a-zA-Z_]\w*/
+	
+	%declare _INDENT _DEDENT
+	%ignore /[ \t]+/
+	%ignore /\\\n/
+	%ignore /#[^\n]*/
+	_NEWLINE: /(\r?\n[\t ]*)+/
