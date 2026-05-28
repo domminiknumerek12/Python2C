@@ -106,231 +106,63 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 |COMMENT|`#.*$`|komentarz jedno-linijkowy|
 
 ### Gramatyka:
-	%declare INDENT DEDENT
-	
-	program: statement+ EOF
-	  
-	statement: instruction
-	| block_statement
-	| ignore
-	| PASS
-	
-	instruction: expressions
-	  		| assignment
-			| exception
-	  		| return
-			| raise
-			| delete
-			| assert
-	  		| BREAK
-	  		| CONTINUE
-			| PASS
-	
-	block_statement: if_conditional
-			| match_conditional
-			| for_loop
-			| while_loop
-			| function
-			| class
-	
-	ignore: import
-		| yield
-		| error_handling
-		| variable_scope
-		| context
+	start: (_NEWLINE | stmt)*
 
-	assignment: simple_asgn
-			| extended_asgn
+    stmt: simple_stmt | if_stmt | while_stmt |        for_stmt | func_def
+	simple_stmt: small_stmt _NEWLINE
+	?small_stmt: assign | aug_assign | return_stmt | expr_stmt | pass_stmt | break_stmt | continue_stmt
 
-	simple_asgn: unit [COMMA unit]? ASGN expression
+assign: NAME "=" expr
+aug_assign: NAME AUG_OP expr
+return_stmt: "return" expr?
+expr_stmt: expr
+pass_stmt: "pass"
+break_stmt: "break"
+continue_stmt: "continue"
 
-	extended_asgn: unit operator ASGN expression
+if_stmt: "if" expr ":" suite ("elif" expr ":" suite)* ("else" ":" suite)?
+while_stmt: "while" expr ":" suite
+for_stmt: "for" NAME "in" "range" "(" range_args ")" ":" suite
+func_def: "def" NAME "(" [params] ")" ["->" NAME] ":" suite
 
-	operator: PLUS
-			| MINUS
-			| TIMES
-			| DIV
-			| MODULO
-			| DIV_INT
-			| POWER
-			| AND
-			| OR
-			| XOR
-			| LSHIFT
-			| RSHIFT
-	
-	if_conditional: IF if_condition COLON block [elif_conditional]* [else_conditional]
-	   
-	elif_conditional: ELIF if_condition COLON block
-	
-	else_conditional: ELSE COLON block
+range_args: expr -> range1 | expr "," expr -> range2 | expr "," expr "," expr -> range3
+params: param ("," param)*
+param: NAME [":" NAME]
+suite: _NEWLINE _INDENT stmt+ _DEDENT
 
-	if_condition: expression compare expression
-	compare: OR_KW
-			| AND_KW
-			| OR
-			| AND
-			| EQ
-			| LE
-			| GE
-			| IN
-	
-	match_conditional: MATCH name_expr COLON NEWLINE INDENT match_case
-	
-	match_case: CASE (NAME|constant) COLON block [match_case]
-	
-	for_loop: FOR for_iter COLON block
-	
-	while_loop: WHILE while_condition COLON block
-	
-	function: DEF NAME LPAREN (NAME (COLON NAME)*)? RPAREN COLON block
-	
-	class:  CLASS NAME (LPAREN NAME RPAREN)? COLON block 
-	
-	import: IMPORT .*$
-	
-	yield: YIELD .*$
-	
-	error_handling: TRY COLON block [EXCEPT COLON block] [FINALLY COLON block]
-	
-	variable_scope: GLOBAL .*$
-			| NONLOCAL .*$
-	
-	context: WITH .*$
-	 
-	block: NEWLINE INDENT statement+ DEDENT
-	
-	expression: LPAREN expression RPAREN
-			| expression OR_KW expression
-			| expression AND_KW expression
-			| NOT expression
-			| expression OR expression
-			| expression AND expression
-			| expression XOR expression
-			| expression LSHIFT expression
-			| expression RSHIFT expression
-			| expression PLUS expression
-			| expression MINUS expression
-			| expression TIMES expression
-			| expression DIV expression
-			| expression DIV_INT expression
-			| expression MODULO expression
-			| expression POWER expression
-			| unit
-	 
-	unit: unit DOT NAME
-		| unit LPAREN args RPAREN 
-		| unit LBRACKET indices RBRACKET
-		| NAME
-		| constant
-		| collection
+?expr: or_expr
+?or_expr: and_expr ("or" and_expr)+ -> or_op | and_expr
+?and_expr: not_expr ("and" not_expr)+ -> and_op | not_expr
+?not_expr: "not" not_expr -> not_op | cmp
+?cmp: add (COMP_OP add)+ -> compare | add
+?add: mul (ADD_OP mul)+ -> binop | mul
+?mul: pow (MUL_OP pow)+ -> binop | pow
+?pow: atom ("**" pow) -> power_op | atom
+?atom: NUMBER -> number
+     | STRING -> string
+     | "True" -> true_lit
+     | "False" -> false_lit
+     | "None" -> none_lit
+     | NAME "(" [args] ")" -> call
+     | NAME "[" expr "]" -> subscript
+     | NAME -> name
+     | ADD_OP atom -> unary_op
+     | "(" expr ")"
+     | "[" [expr ("," expr)*] "]" -> list_lit
 
-	indices: expression [COLON expression]
+args: expr ("," expr)*
 
-	args: [arg (COMMA arg)*]
+AUG_OP: "+=" | "-=" | "*=" | "/=" | "%="
+COMP_OP: "==" | "!=" | "<=" | ">=" | "<" | ">"
+ADD_OP: "+" | "-"
+MUL_OP: "*" | "//" | "/" | "%"
 
-	arg: expression
-		| NAME ASGN expression
-	
-	collection: list | tuple | dict
-	
-	constant: TRUE
-		| FALSE
-		| NONE
-		| literal
-		
-	literal: integer
-		| float
-		| string
+NUMBER: /\d+(\.\d+)?([eE][+-]?\d+)?/
+STRING: /\"(?:[^\"\\]|\\.)*\"|'(?:[^'\\]|\\.)*'/
+NAME: /[a-zA-Z_]\w*/
 
-	integer: pos_int | neg_int
-		
-	float: pos_fl | neg_fl
-	
-	pos_int: NUMBER
-	neg_int: MINUS NUMBER
-	
-	pos_fl: NUMBER
-	neg_fl: MINUS NUMBER
-	
-	list: LBRACKET expression? (COMMA expression)* RBRACKET
-	  
-	tuple: LPAREN expression COMMA RPAREN
-		| LPAREN expression (COMMA expression)+ RPAREN
-	  
-	dictionary: LBRACE dict_item? (COMMA dict_item)*  RBRACe
-	  
-	dict_item: expression COLON expression
-
-
-	PASS: "pass"
-	IF: "if"
-	ELIF: "elif"
-	ELSE: "else"
-	MATCH: "match"
-	CASE: "case"
-	FOR: "for"
-	WHILE: "while"
-	IN: "in"
-	IS: "is"
-	RAISE: "raise"
-	ASSERT: "assert"
-	DEF: "def"
-	CLASS: "class"
-	TRY: "try"
-	EXCEPT: "except"
-	FINALLY: "finally"
-	WITH: "with"
-	YIELD: "yield"
-	GLOBAL: "global"
-	NONLOCAL: "nonlocal"
-	
-	OR_KW: "or"
-	AND_KW: "and"
-	NOT: "not"
-	AND: '&'
-	OR: '|'
-	XOR: '^'
-	LSHIFT: '<<'
-	RSHIFT: '>>'
-	PLUS: '+'
-	MINUS: '-'
-	TIMES: '*'
-	DIV: '/'
-	POWER: '**'
-	DIV_INT: '//'
-	MODULO: '%'
-	
-	EQ: '=='
-	GE: '>='
-	LE: '<='
-	
-	ASGN: '='
-	
-	LPAREN: '('
-	RPAREN: ')'
-	LBRACKET: '['
-	RBRACKET: ']'
-	LBRACE: '{'
-	RBRACE: '}'
-	
-	COMMA: ','
-	COLON: ':'
-	DOT: '.'
-	
-	TRUE: "True"
-	FALSE: "False"
-	NONE: "None"
-	
-	COMMENT: #.*$
-	
-	NAME: [_a-zA-Z][_a-zA-Z0-9]*
-	
-	INT: '0'|[1-9][0-9]*
-	FLOAT: ['0'|[1-9][0-9]*](.[0-9]*)?
-	STRING: []
-	
-	WHITESPACE: [ \t\r]+
-	NEWLINE: \n
-	EOF: EOF
-
+%declare _INDENT _DEDENT
+%ignore /[ \t]+/
+%ignore /\\\n/
+%ignore /#[^\n]*/
+_NEWLINE: /(\r?\n[\t ]*)+/
