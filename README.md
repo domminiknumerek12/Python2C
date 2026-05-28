@@ -18,7 +18,7 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 |-----|-------|----|
 |NAME|`/[a-zA-Z_]\w*/`|nazwa obiektu|
 |NUMBER|`/\d+(\.\d+)?([eE][+-]?\d+)?/`|liczba rzecywista|
-|STRING|`/\"(?:[^\"\\]|\\.)*\"|'(?:[^'\\]|\\.)*'/`|napis|
+|STRING|<code>/\"(?:[^\"\\]&#124\\.)*\"|'(?:[^'\\]&#124\\.)*'/</code>|napis|
 ## Słowa kluczowe 
 |Token|Wzorzec|Opis|
 |-----|-------|----|
