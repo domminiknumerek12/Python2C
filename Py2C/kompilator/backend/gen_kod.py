@@ -1,8 +1,8 @@
 from lark import Tree, Token
-from .typy import CAŁKOWITY, ZMIENNOPRZECINKOWY, TEKST, NIETYP, typ_szerszy, typ_c, format_printf, deklaracja_c
+from .typy import CALKOWITY, ZMIENNOPRZECINKOWY, TEKST, NIETYP, typ_szerszy, typ_c, format_printf, deklaracja_c
 
 class GeneratorKodu:
-    WCIĘCIE = '    '
+    WCIECIE = '    '
 
     def __init__(self, tablica_symboli):
         self.ts = tablica_symboli
@@ -13,7 +13,7 @@ class GeneratorKodu:
 
     def emituj(self, tekst=''):
         if tekst:
-            self.linie.append(self.WCIĘCIE * self.poziom_wc + tekst)
+            self.linie.append(self.WCIECIE * self.poziom_wc + tekst)
         else:
             self.linie.append('')
 
@@ -23,12 +23,12 @@ class GeneratorKodu:
     def wynik(self):
         return '\n'.join(self.linie)
 
-    def wejdź(self, zakres=None):
+    def wejdz(self, zakres=None):
         if zakres:
             self.zakres = zakres
         self.zadeklarowane.append(set())
 
-    def wyjdź(self, zakres=None):
+    def wyjdz(self, zakres=None):
         self.zadeklarowane.pop()
         if zakres:
             self.zakres = zakres
@@ -114,7 +114,7 @@ class GeneratorKodu:
 
         self.surowo('int main(void) {')
         self.poziom_wc = 1
-        self.wejdź(self.ts.glob)
+        self.wejdz(self.ts.glob)
         for węzeł in drzewo.children:
             wew = self.rozpakuj(węzeł)
             if isinstance(wew, Tree) and wew.data == 'func_def':
@@ -122,7 +122,7 @@ class GeneratorKodu:
             self.gen(węzeł)
         self.emituj('return 0;')
         self.poziom_wc = 0
-        self.wyjdź()
+        self.wyjdz()
         self.surowo('}')
 
         return self.wynik()
@@ -143,9 +143,9 @@ class GeneratorKodu:
             return str(węzeł)
         if not isinstance(węzeł, Tree):
             return ''
-        return getattr(self, 'gen_' + węzeł.data, self.gen_domyślnie)(węzeł)
+        return getattr(self, 'gen_' + węzeł.data, self.gen_domyslnie)(węzeł)
 
-    def gen_domyślnie(self, węzeł):
+    def gen_domyslnie(self, węzeł):
         for dziecko in węzeł.children:
             if isinstance(dziecko, Tree):
                 self.gen(dziecko)
