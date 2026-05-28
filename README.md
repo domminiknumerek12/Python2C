@@ -16,9 +16,9 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 ## Wzorce znaczeniowe
 |Token|Wzorzec|Opis|
 |-----|-------|----|
-|NAME|`[_a-zA-Z][_a-zA-Z0-9]*`|nazwa obiektu|
-|NUMBER|`[0-9]+(.[0-9]+)?`|liczba rzecywista|
-|STRING|`^".*"$`|napis|
+|NAME|`/[a-zA-Z_]\w*/`|nazwa obiektu|
+|NUMBER|`/\d+(\.\d+)?([eE][+-]?\d+)?/`|liczba rzecywista|
+|STRING|`/\"(?:[^\"\\]|\\.)*\"|'(?:[^'\\]|\\.)*'/`|napis|
 ## Słowa kluczowe 
 |Token|Wzorzec|Opis|
 |-----|-------|----|
@@ -55,22 +55,19 @@ Program ma za zadanie przekonwertowanie kodu napisanego w języku Python na kod 
 |ASGN|`=`|przypisanie|
 |PLUS|`+`|dodawanie|
 |MINUS|`-`|odejmowanie|
-|TIMES|`*`|mnożenie|
+|MUL|`*`|mnożenie|
 |DIV|`/`|dzielenie|
 |POWER|`**`|potęgowanie|
-|DIV_INT|`//`|dzielenie całkowite|
-|MODULO|`%`|modulo|
-|AND|`&`|koniunkcja|
-|OR|`|`|alternatywa|
-|XOR|`^`|alternatywa wykluczająca|
-|LSHIFT|`<<`|przesunięcie bitowe w lewo|
-|RSHIFT|`>>`|przesunięcie bitowe w prawo|
+|MOD|`%`|modulo|
 # Porównania
 |Token|Wzorzec|Opis|
 |-----|-------|----|
 |EQ|`==`|równosć|
+|NE|`!=`|nierównosć|
 |GE|`>=`|większe bądź równe od|
 |LE|`<=`|mniejsze bądź równe od|
+|GT|`>`|ściśle większe od|
+|LT|`<`|ściśle mniejsze od|
 # Nawiasy
 |Token|Wzorzec|Opis|
 |-----|-------|----|
