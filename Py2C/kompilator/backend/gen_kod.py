@@ -1,10 +1,13 @@
 from lark import Tree, Token
-from .typy import CALKOWITY, ZMIENNOPRZECINKOWY, TEKST, NIETYP, typ_szerszy, typ_c, format_printf, deklaracja_c
+from .typy import CAŁKOWITY, ZMIENNOPRZECINKOWY, TEKST, NIETYP, typ_szerszy, typ_c, format_printf, deklaracja_c
+from .errors import RuntimeError as CompilerRuntimeError
 
 class GeneratorKodu:
-    WCIECIE = '    '
+    WCIĘCIE = '    '
 
     def __init__(self, tablica_symboli):
+        if not tablica_symboli:
+            raise CompilerRuntimeError("Tablica symboli nie może być pusta.")
         self.ts = tablica_symboli
         self.linie = []
         self.poziom_wc = 0
@@ -13,7 +16,7 @@ class GeneratorKodu:
 
     def emituj(self, tekst=''):
         if tekst:
-            self.linie.append(self.WCIECIE * self.poziom_wc + tekst)
+            self.linie.append(self.WCIĘCIE * self.poziom_wc + tekst)
         else:
             self.linie.append('')
 
@@ -23,12 +26,12 @@ class GeneratorKodu:
     def wynik(self):
         return '\n'.join(self.linie)
 
-    def wejdz(self, zakres=None):
+    def wejdź(self, zakres=None):
         if zakres:
             self.zakres = zakres
         self.zadeklarowane.append(set())
 
-    def wyjdz(self, zakres=None):
+    def wyjdź(self, zakres=None):
         self.zadeklarowane.pop()
         if zakres:
             self.zakres = zakres
@@ -114,7 +117,7 @@ class GeneratorKodu:
 
         self.surowo('int main(void) {')
         self.poziom_wc = 1
-        self.wejdz(self.ts.glob)
+        self.wejdź(self.ts.glob)
         for węzeł in drzewo.children:
             wew = self.rozpakuj(węzeł)
             if isinstance(wew, Tree) and wew.data == 'func_def':
@@ -122,7 +125,7 @@ class GeneratorKodu:
             self.gen(węzeł)
         self.emituj('return 0;')
         self.poziom_wc = 0
-        self.wyjdz()
+        self.wyjdź()
         self.surowo('}')
 
         return self.wynik()
@@ -143,9 +146,9 @@ class GeneratorKodu:
             return str(węzeł)
         if not isinstance(węzeł, Tree):
             return ''
-        return getattr(self, 'gen_' + węzeł.data, self.gen_domyslnie)(węzeł)
+        return getattr(self, 'gen_' + węzeł.data, self.gen_domyślnie)(węzeł)
 
-    def gen_domyslnie(self, węzeł):
+    def gen_domyślnie(self, węzeł):
         for dziecko in węzeł.children:
             if isinstance(dziecko, Tree):
                 self.gen(dziecko)
@@ -163,22 +166,39 @@ class GeneratorKodu:
         return ''
 
     def gen_assign(self, węzeł):
-        nazwa = str(węzeł.children[0])
-        rhs = węzeł.children[1]
-        typ = self.typ_zmiennej(nazwa)
-        expr = self.gen(rhs)
-        if not self.czy_zadeklarowana(nazwa):
-            self.oznacz(nazwa)
-            if self.zakres.czy_tablica(nazwa):
-                elem_typ, rozmiar = self.zakres.info_tablicy(nazwa)
-                self.emituj(f'{typ_c(elem_typ)} {nazwa}[{rozmiar}] = {expr};')
-            elif typ == TEKST:
-                self.emituj(f'char {nazwa}[256];')
-                self.emituj(f'strcpy({nazwa}, {expr});')
+        try:
+            if not węzeł.children or len(węzeł.children) < 2:
+                raise CompilerRuntimeError("Instrukcja przypisania musi mieć nazwę zmiennej i wartość.")
+            
+            nazwa = str(węzeł.children[0])
+            if not nazwa or not isinstance(nazwa, str) or len(nazwa) == 0:
+                raise CompilerRuntimeError(f"Nazwa zmiennej nieprawidłowa: '{nazwa}'")
+            
+            rhs = węzeł.children[1]
+            typ = self.typ_zmiennej(nazwa)
+            expr = self.gen(rhs)
+            
+            if not expr:
+                raise CompilerRuntimeError(f"Nie można wygenerować wyrażenia dla przypisania zmiennej '{nazwa}'")
+            
+            if not self.czy_zadeklarowana(nazwa):
+                self.oznacz(nazwa)
+                if self.zakres.czy_tablica(nazwa):
+                    elem_typ, rozmiar = self.zakres.info_tablicy(nazwa)
+                    if rozmiar is None or rozmiar <= 0:
+                        raise CompilerRuntimeError(f"Nieprawidłowy rozmiar tablicy '{nazwa}'")
+                    self.emituj(f'{typ_c(elem_typ)} {nazwa}[{rozmiar}] = {expr};')
+                elif typ == TEKST:
+                    self.emituj(f'char {nazwa}[256];')
+                    self.emituj(f'strcpy({nazwa}, {expr});')
+                else:
+                    self.emituj(f'{typ} {nazwa} = {expr};')
             else:
-                self.emituj(f'{typ} {nazwa} = {expr};')
-        else:
-            self.emituj(f'strcpy({nazwa}, {expr});' if typ == TEKST else f'{nazwa} = {expr};')
+                self.emituj(f'strcpy({nazwa}, {expr});' if typ == TEKST else f'{nazwa} = {expr};')
+        except CompilerRuntimeError:
+            raise
+        except Exception as e:
+            raise CompilerRuntimeError(f"Błąd podczas generowania przypisania: {e}")
 
     def gen_aug_assign(self, węzeł):
         self.emituj(f'{węzeł.children[0]} {węzeł.children[1]} {self.gen(węzeł.children[2])};')
@@ -233,73 +253,140 @@ class GeneratorKodu:
         self.emituj('}')
 
     def gen_while_stmt(self, węzeł):
-        self.emituj(f'while ({self.gen(węzeł.children[0])}) {{')
-        self.poziom_wc += 1
-        self.wejdź()
-        for dziecko in węzeł.children[1].children:
-            self.gen(dziecko)
-        self.wyjdź()
-        self.poziom_wc -= 1
-        self.emituj('}')
+        try:
+            if not węzeł.children or len(węzeł.children) < 2:
+                raise CompilerRuntimeError("Pętla while musi mieć warunek i ciało.")
+            
+            warunek = self.gen(węzeł.children[0])
+            if not warunek:
+                raise CompilerRuntimeError("Nie można wygenerować warunku pętli while")
+            
+            self.emituj(f'while ({warunek}) {{')
+            self.poziom_wc += 1
+            self.wejdź()
+            
+            suite = węzeł.children[1]
+            if isinstance(suite, Tree) and suite.data == 'suite':
+                for dziecko in suite.children:
+                    self.gen(dziecko)
+            else:
+                self.gen(suite)
+            
+            self.wyjdź()
+            self.poziom_wc -= 1
+            self.emituj('}')
+        except CompilerRuntimeError:
+            raise
+        except Exception as e:
+            raise CompilerRuntimeError(f"Błąd podczas generowania pętli while: {e}")
 
     def gen_for_stmt(self, węzeł):
-        zmienna = str(węzeł.children[0])
-        args_zakresu = węzeł.children[1]
-        suite = węzeł.children[2]
+        try:
+            if not węzeł.children or len(węzeł.children) < 3:
+                raise CompilerRuntimeError("Pętla for musi mieć zmienną, zakres i ciało.")
+            
+            zmienna = str(węzeł.children[0])
+            if not zmienna:
+                raise CompilerRuntimeError("Nazwa zmiennej pętli for nie może być pusta")
+            
+            args_zakresu = węzeł.children[1]
+            suite = węzeł.children[2]
+            
+            if not isinstance(args_zakresu, Tree):
+                raise CompilerRuntimeError("Zakres pętli for musi być węzłem drzewa")
 
-        if args_zakresu.data == 'range1':
-            nagłówek = f'int {zmienna} = 0; {zmienna} < {self.gen(args_zakresu.children[0])}; {zmienna}++'
-        elif args_zakresu.data == 'range2':
-            start = self.gen(args_zakresu.children[0])
-            koniec = self.gen(args_zakresu.children[1])
-            nagłówek = f'int {zmienna} = {start}; {zmienna} < {koniec}; {zmienna}++'
-        else:
-            start = self.gen(args_zakresu.children[0])
-            koniec = self.gen(args_zakresu.children[1])
-            węzeł_kroku = args_zakresu.children[2]
-            krok = self.gen(węzeł_kroku)
-            ujemny = isinstance(węzeł_kroku, Tree) and węzeł_kroku.data == 'unary_op' and str(węzeł_kroku.children[0]) == '-'
-            if not ujemny:
-                try:
-                    ujemny = float(krok) < 0
-                except ValueError:
-                    pass
-            operator = '>' if ujemny else '<'
-            nagłówek = f'int {zmienna} = {start}; {zmienna} {operator} {koniec}; {zmienna} += {krok}'
+            if args_zakresu.data == 'range1':
+                koniec_gen = self.gen(args_zakresu.children[0])
+                if not koniec_gen:
+                    raise CompilerRuntimeError("Nie można wygenerować końca zakresu pętli for")
+                nagłówek = f'int {zmienna} = 0; {zmienna} < {koniec_gen}; {zmienna}++'
+            elif args_zakresu.data == 'range2':
+                start_gen = self.gen(args_zakresu.children[0])
+                koniec_gen = self.gen(args_zakresu.children[1])
+                if not start_gen or not koniec_gen:
+                    raise CompilerRuntimeError("Nie można wygenerować zakresu pętli for")
+                nagłówek = f'int {zmienna} = {start_gen}; {zmienna} < {koniec_gen}; {zmienna}++'
+            else:
+                start_gen = self.gen(args_zakresu.children[0])
+                koniec_gen = self.gen(args_zakresu.children[1])
+                if not start_gen or not koniec_gen:
+                    raise CompilerRuntimeError("Nie można wygenerować zakresu pętli for")
+                
+                węzeł_kroku = args_zakresu.children[2]
+                krok = self.gen(węzeł_kroku)
+                if not krok:
+                    raise CompilerRuntimeError("Nie można wygenerować kroku pętli for")
+                
+                ujemny = isinstance(węzeł_kroku, Tree) and węzeł_kroku.data == 'unary_op' and str(węzeł_kroku.children[0]) == '-'
+                if not ujemny:
+                    try:
+                        ujemny = float(krok) < 0
+                    except ValueError:
+                        pass
+                operator = '>' if ujemny else '<'
+                nagłówek = f'int {zmienna} = {start_gen}; {zmienna} {operator} {koniec_gen}; {zmienna} += {krok}'
 
-        self.emituj(f'for ({nagłówek}) {{')
-        self.poziom_wc += 1
-        self.wejdź()
-        self.oznacz(zmienna)
-        for dziecko in suite.children:
-            self.gen(dziecko)
-        self.wyjdź()
-        self.poziom_wc -= 1
-        self.emituj('}')
+            self.emituj(f'for ({nagłówek}) {{')
+            self.poziom_wc += 1
+            self.wejdź()
+            self.oznacz(zmienna)
+            
+            if isinstance(suite, Tree) and suite.data == 'suite':
+                for dziecko in suite.children:
+                    self.gen(dziecko)
+            else:
+                self.gen(suite)
+            
+            self.wyjdź()
+            self.poziom_wc -= 1
+            self.emituj('}')
+        except CompilerRuntimeError:
+            raise
+        except Exception as e:
+            raise CompilerRuntimeError(f"Błąd podczas generowania pętli for: {e}")
 
     def gen_func_def(self, węzeł):
-        nazwa_func = str(węzeł.children[0])
-        info_func = self.ts.funkcje.get(nazwa_func, {
-            'zwraca': NIETYP,
-            'parametry': [],
-            'zakres': self.ts.glob
-        })
-        params = ', '.join(
-            deklaracja_c(p_typ, p_nazwa) for p_nazwa, p_typ in info_func['parametry']
-        )
-        self.surowo(f'{typ_c(info_func["zwraca"])} {nazwa_func}({params or "void"}) {{')
-        self.poziom_wc = 1
-        zewnętrzny_zakres = self.zakres
-        self.wejdź(info_func['zakres'])
-        for p_nazwa, _ in info_func['parametry']:
-            self.oznacz(p_nazwa)
-        suite = next((d for d in węzeł.children if isinstance(d, Tree) and d.data == 'suite'), None)
-        if suite:
-            for dziecko in suite.children:
-                self.gen(dziecko)
-        self.wyjdź(zewnętrzny_zakres)
-        self.poziom_wc = 0
-        self.surowo('}')
+        try:
+            if not węzeł.children:
+                raise CompilerRuntimeError("Definicja funkcji musi mieć nazwę.")
+            
+            nazwa_func = str(węzeł.children[0])
+            if not nazwa_func:
+                raise CompilerRuntimeError("Nazwa funkcji nie może być pusta")
+            
+            info_func = self.ts.funkcje.get(nazwa_func, {
+                'zwraca': NIETYP,
+                'parametry': [],
+                'zakres': self.ts.glob
+            })
+            
+            params = ', '.join(
+                deklaracja_c(p_typ, p_nazwa) for p_nazwa, p_typ in info_func['parametry']
+            )
+            
+            self.surowo(f'{typ_c(info_func["zwraca"])} {nazwa_func}({params or "void"}) {{')
+            self.poziom_wc = 1
+            zewnętrzny_zakres = self.zakres
+            self.wejdź(info_func['zakres'])
+            
+            for p_nazwa, _ in info_func['parametry']:
+                self.oznacz(p_nazwa)
+            
+            suite = next((d for d in węzeł.children if isinstance(d, Tree) and d.data == 'suite'), None)
+            if suite:
+                for dziecko in suite.children:
+                    self.gen(dziecko)
+            else:
+                if len(węzeł.children) > 1:
+                    raise CompilerRuntimeError(f"Ciało funkcji '{nazwa_func}' nie znalezione")
+            
+            self.wyjdź(zewnętrzny_zakres)
+            self.poziom_wc = 0
+            self.surowo('}')
+        except CompilerRuntimeError:
+            raise
+        except Exception as e:
+            raise CompilerRuntimeError(f"Błąd podczas generowania definicji funkcji: {e}")
 
     def gen_number(self, węzeł):
         return str(węzeł.children[0])
@@ -360,67 +447,92 @@ class GeneratorKodu:
         return '{' + ', '.join(self.gen(d) for d in węzeł.children if isinstance(d, Tree)) + '}'
 
     def gen_call(self, węzeł):
-        nazwa_func = str(węzeł.children[0])
-        arg_węzły = next(
-            (d for d in węzeł.children[1:] if isinstance(d, Tree) and d.data == 'args'), None
-        )
-        węzły_arg = [d for d in arg_węzły.children if isinstance(d, Tree)] if arg_węzły else []
-        argumenty = [self.gen(d) for d in węzły_arg]
-        wbudowana = self.wbudowana(nazwa_func, argumenty, węzły_arg)
-        return wbudowana or f'{nazwa_func}({", ".join(argumenty)})'
+        try:
+            if not węzeł.children:
+                raise CompilerRuntimeError("Wywołanie funkcji musi mieć nazwę funkcji")
+            
+            nazwa_func = str(węzeł.children[0])
+            if not nazwa_func:
+                raise CompilerRuntimeError("Nazwa funkcji nie może być pusta")
+            
+            arg_węzły = next(
+                (d for d in węzeł.children[1:] if isinstance(d, Tree) and d.data == 'args'), None
+            )
+            węzły_arg = [d for d in arg_węzły.children if isinstance(d, Tree)] if arg_węzły else []
+            argumenty = [self.gen(d) for d in węzły_arg]
+            
+            # Sprawdzenie czy wszystkie argumenty zostały wygenerowane
+            for i, arg in enumerate(argumenty):
+                if not arg:
+                    raise CompilerRuntimeError(f"Nie można wygenerować argumentu {i+1} funkcji '{nazwa_func}'")
+            
+            wbudowana = self.wbudowana(nazwa_func, argumenty, węzły_arg)
+            if wbudowana:
+                return wbudowana
+            
+            return f'{nazwa_func}({", ".join(argumenty)})'
+        except CompilerRuntimeError:
+            raise
+        except Exception as e:
+            raise CompilerRuntimeError(f"Błąd podczas generowania wywołania funkcji '{nazwa_func}': {e}")
 
     def wbudowana(self, nazwa_func, argumenty, węzły_arg):
-        if nazwa_func == 'print':
-            if not argumenty:
-                return 'printf("\\n")'
-            formaty = ' '.join(format_printf(self.wnioskuj_typ(w)) for w in węzły_arg)
-            return f'printf("{formaty}\\n", {", ".join(argumenty)})'
+        try:
+            if nazwa_func == 'print':
+                if not argumenty:
+                    return 'printf("\\n")'
+                formaty = ' '.join(format_printf(self.wnioskuj_typ(w)) for w in węzły_arg)
+                return f'printf("{formaty}\\n", {", ".join(argumenty)})'
 
-        if nazwa_func == 'input':
-            prompt = argumenty[0] if argumenty else '""'
-            return (f'(printf({prompt}), fflush(stdout), fgets(__inbuf, 256, stdin), '
-                    f'(__inbuf[strlen(__inbuf)-1]==\'\\n\'?(__inbuf[strlen(__inbuf)-1]=\'\\0\'):0), '
-                    f'__inbuf)')
+            if nazwa_func == 'input':
+                prompt = argumenty[0] if argumenty else '""'
+                return (f'(printf({prompt}), fflush(stdout), fgets(__inbuf, 256, stdin), '
+                        f'(__inbuf[strlen(__inbuf)-1]==\'\\n\'?(__inbuf[strlen(__inbuf)-1]=\'\\0\'):0), '
+                        f'__inbuf)')
 
-        if nazwa_func == 'int':
-            if not argumenty:
-                return '0'
-            return (f'atoi({argumenty[0]})'
-                    if węzły_arg and self.wnioskuj_typ(węzły_arg[0]) == TEKST
-                    else f'((int)({argumenty[0]}))')
+            if nazwa_func == 'int':
+                if not argumenty:
+                    return '0'
+                return (f'atoi({argumenty[0]})'
+                        if węzły_arg and self.wnioskuj_typ(węzły_arg[0]) == TEKST
+                        else f'((int)({argumenty[0]}))')
 
-        if nazwa_func == 'float':
-            if not argumenty:
-                return '0.0'
-            return (f'atof({argumenty[0]})'
-                    if węzły_arg and self.wnioskuj_typ(węzły_arg[0]) == TEKST
-                    else f'((double)({argumenty[0]}))')
+            if nazwa_func == 'float':
+                if not argumenty:
+                    return '0.0'
+                return (f'atof({argumenty[0]})'
+                        if węzły_arg and self.wnioskuj_typ(węzły_arg[0]) == TEKST
+                        else f'((double)({argumenty[0]}))')
 
-        if nazwa_func == 'abs':
-            if not argumenty:
-                return '0'
-            return (f'fabs({argumenty[0]})'
-                    if węzły_arg and self.wnioskuj_typ(węzły_arg[0]) == ZMIENNOPRZECINKOWY
-                    else f'abs({argumenty[0]})')
+            if nazwa_func == 'abs':
+                if not argumenty:
+                    return '0'
+                return (f'fabs({argumenty[0]})'
+                        if węzły_arg and self.wnioskuj_typ(węzły_arg[0]) == ZMIENNOPRZECINKOWY
+                        else f'abs({argumenty[0]})')
 
-        if nazwa_func == 'len':
-            if not argumenty:
-                return '0'
-            if węzły_arg and węzły_arg[0].data == 'name':
-                rozmiar = self.zakres.info_tablicy(str(węzły_arg[0].children[0]))[1]
-                if rozmiar:
-                    return str(rozmiar)
-            return f'strlen({argumenty[0]})'
+            if nazwa_func == 'len':
+                if not argumenty:
+                    return '0'
+                if węzły_arg and węzły_arg[0].data == 'name':
+                    nazwa_zmiennej = str(węzły_arg[0].children[0])
+                    rozmiar = self.zakres.info_tablicy(nazwa_zmiennej)[1]
+                    if rozmiar:
+                        return str(rozmiar)
+                return f'strlen({argumenty[0]})'
 
-        if nazwa_func == 'max' and len(argumenty) == 2:
-            a, b = argumenty
-            return f'(({a})>({b})?({a}):({b}))'
-        if nazwa_func == 'min' and len(argumenty) == 2:
-            a, b = argumenty
-            return f'(({a})<({b})?({a}):({b}))'
+            if nazwa_func == 'max' and len(argumenty) == 2:
+                a, b = argumenty
+                return f'(({a})>({b})?({a}):({b}))'
+            
+            if nazwa_func == 'min' and len(argumenty) == 2:
+                a, b = argumenty
+                return f'(({a})<({b})?({a}):({b}))'
 
-        MAT = {'sqrt', 'sin', 'cos', 'tan', 'log', 'log2', 'log10', 'exp', 'ceil', 'floor', 'fabs', 'pow'}
-        if nazwa_func in MAT:
-            return f'{nazwa_func}({", ".join(argumenty)})'
+            MAT = {'sqrt', 'sin', 'cos', 'tan', 'log', 'log2', 'log10', 'exp', 'ceil', 'floor', 'fabs', 'pow'}
+            if nazwa_func in MAT:
+                return f'{nazwa_func}({", ".join(argumenty)})'
 
-        return None
+            return None
+        except Exception as e:
+            raise CompilerRuntimeError(f"Błąd w wbudowanej funkcji '{nazwa_func}': {e}")
