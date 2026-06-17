@@ -39,7 +39,7 @@ def main():
             traceback.print_exc()
             sys.exit(1)
         
-        # Zapisanie wyniku
+        # Zapisanie resultu
         if plik_wyj:
             try:
                 with open(plik_wyj, 'w', encoding='utf-8') as f:

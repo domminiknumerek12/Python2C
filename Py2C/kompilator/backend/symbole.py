@@ -38,9 +38,9 @@ class TablicaSymboli:
         self.nagłówki = {'<stdio.h>'}
         self.użyj_bufora_wej = False
 
-    def wejdź(self):
+    def enter(self):
         self.aktualny = Zakres(self.aktualny)
         return self.aktualny
 
-    def wyjdź(self):
+    def leave(self):
         self.aktualny = self.aktualny.rodzic
